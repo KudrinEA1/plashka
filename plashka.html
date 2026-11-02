@@ -14,7 +14,8 @@
   #bar { display:flex; align-items:stretch; height: calc(46px * var(--k)); border-radius: calc(8px * var(--k)); overflow:hidden;
          box-shadow: 0 0 0 calc(2px * var(--k)) var(--gold); font-weight:700; }
   .name { background:var(--blue); display:flex; align-items:center; gap: calc(6px * var(--k)); padding: 0 calc(12px * var(--k));
-          font-size: calc(20px * var(--k)); white-space:nowrap; }
+          font-size: calc(20px * var(--k)); white-space:nowrap; box-sizing:border-box; }
+  .name span { flex:1; text-align:center; }        /* блоки названий одной ширины, короткое название - по центру своего блока */
   #nThem { flex-direction: row-reverse; }
   .dot { width: calc(9px * var(--k)); height: calc(9px * var(--k)); border-radius:50%; background:var(--yellow); flex:none; opacity:0; transition: opacity .3s; }
   .dot.on { opacity:1; }
@@ -45,10 +46,17 @@
   table { border-collapse:collapse; }
   td { padding: calc(2px * var(--k)) calc(6px * var(--k)); font-size: calc(14px * var(--k)); font-weight:700; vertical-align:middle; white-space:nowrap; }
   td.n { color:var(--gold); }
-  .strip { display:grid; grid-auto-flow:column; grid-template-rows: repeat(2, calc(8px * var(--k))); gap: calc(2px * var(--k)); }
-  .strip i { width: calc(8px * var(--k)); height: calc(8px * var(--k)); border-radius:50%; }
+  .setrow { display:flex; align-items:center; gap: calc(8px * var(--k)); }
+  .strip { display:grid; grid-template-rows: repeat(2, calc(17px * var(--k))); grid-auto-columns: calc(17px * var(--k)); gap: calc(2px * var(--k)); }
+  .strip i { width: calc(17px * var(--k)); height: calc(17px * var(--k)); border-radius:50%; font-style:normal; color:var(--ink);
+             font-size: calc(9px * var(--k)); font-weight:800; display:flex; align-items:center; justify-content:center; font-variant-numeric: tabular-nums; }
   .strip i.u { background:var(--yellow); grid-row:1; } .strip i.t { background:#fff; grid-row:2; }
-  .strip i.q { opacity:.45; }
+  .strip i.q { opacity:.5; }
+  .fin { display:grid; grid-template-rows: repeat(2, calc(17px * var(--k))); gap: calc(2px * var(--k)); }
+  .fin b { min-width: calc(28px * var(--k)); border-radius: calc(5px * var(--k)); display:flex; align-items:center; justify-content:center;
+           font-size: calc(13px * var(--k)); color:var(--ink); font-variant-numeric: tabular-nums; }
+  .fin b.u { background:var(--yellow); } .fin b.t { background:#fff; }
+  .fin b.lose { opacity:.55; }
   .legend { font-size: calc(11px * var(--k)); color:#cfd2ff; margin-top: calc(4px * var(--k)); text-align:center; }
   .legend b { display:inline-block; width: calc(8px * var(--k)); height: calc(8px * var(--k)); border-radius:50%; margin: 0 calc(3px * var(--k)) 0 calc(8px * var(--k)); }
 
@@ -83,9 +91,23 @@ const anim = q.get('anim') !== '0';
 const $ = id => document.getElementById(id);
 let last = null, streakKey = '', streakTimer = 0, panelKey = '';
 
-function fitName(el, text) {                 // название не обрезаем: длинное - мельче шрифт
-  el.textContent = text;
-  el.style.fontSize = text.length > 14 ? (14 / text.length) * 100 + '%' : '';
+let namesKey = '';
+function fitNames(us, them) {                 // названия не обрезаем; оба блока одной ширины - плашка симметрична
+  const key = us + '|' + them;
+  if (key === namesKey) return;
+  namesKey = key;
+  const a = $('nUs'), b = $('nThem');
+  $('tUs').textContent = us; $('tThem').textContent = them;
+  for (const el of [a, b]) { el.style.width = ''; el.style.fontSize = ''; }
+  const k = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--k')) || 1;
+  const cap = 340 * k;                           // шире не растём: у обоих одинаково уменьшается шрифт
+  let w = Math.max(a.scrollWidth, b.scrollWidth);
+  if (w > cap) {
+    const f = cap / w;
+    for (const el of [a, b]) el.style.fontSize = (20 * k * f) + 'px';
+    w = Math.max(a.scrollWidth, b.scrollWidth);
+  }
+  for (const el of [a, b]) el.style.width = w + 'px';
 }
 function setNum(id, v) {
   const el = $(id);
@@ -96,9 +118,17 @@ function setNum(id, v) {
 }
 function badge(id, text) { const b = $(id); if (text) b.textContent = text; b.classList.toggle('on', !!text); }
 function strip(seq) {
-  // столбец = номер розыгрыша, верхний ряд - очки первой команды, нижний - второй (как в приложении судьи)
-  return '<div class="strip">' + seq.map(([t, unsure], i) => '<i class="' + (t === 0 ? 'u' : 't') + (unsure ? ' q' : '') +
-    '" style="grid-column:' + (i + 1) + '"></i>').join('') + '</div>';
+  // как в приложении судьи: столбец = номер розыгрыша, верхний ряд - наши, нижний - соперник, в кружке - счёт команды
+  let u = 0, t = 0;
+  return '<div class="strip">' + seq.map(([team, unsure], i) => {
+    const n = team === 0 ? ++u : ++t;
+    return '<i class="' + (team === 0 ? 'u' : 't') + (unsure ? ' q' : '') + '" style="grid-column:' + (i + 1) + '">' + n + '</i>';
+  }).join('') + '</div>';
+}
+function fin(f, done) {                              // итог партии столбиком; у проигравшего бледнее
+  if (!f) return '<div class="fin"></div>';
+  const lu = done && f[0] < f[1] ? ' lose' : '', lt = done && f[1] < f[0] ? ' lose' : '';
+  return '<div class="fin"><b class="u' + lu + '">' + f[0] + '</b><b class="t' + lt + '">' + f[1] + '</b></div>';
 }
 function legend(sc) {
   return '<div class="legend"><b style="background:var(--yellow)"></b>' + sc.us.name + '<b style="background:#fff"></b>' + sc.them.name + '</div>';
@@ -109,19 +139,19 @@ function showPanel(sc) {
   if (sc.board) {                                   // «Статистика в эфир»: все партии
     key = 'board' + JSON.stringify(sc.board.map(r => r.final));
     html = '<div class="ttl">Статистика матча</div><table>' + sc.board.map(r =>
-      '<tr><td class="n">' + r.n + '</td><td>' + (r.final ? r.final[0] + ':' + r.final[1] : '') + '</td><td>' + strip(r.seq) + '</td></tr>').join('') +
+      '<tr><td class="n">' + r.n + '</td><td>' + fin(r.final, r.done) + '</td><td>' + strip(r.seq) + '</td></tr>').join('') +
       '</table>' + legend(sc);
   } else if (sc.summary) {                          // итог только что закончившейся партии
     const s = sc.summary;
     key = 'sum' + s.n + s.end;
-    html = '<div class="ttl">Партия ' + s.n + ' · <em>' + s.final[0] + ':' + s.final[1] + '</em></div>' + strip(s.seq) + legend(sc);
+    html = '<div class="ttl">Партия ' + s.n + ' · <em>' + s.final[0] + ':' + s.final[1] + '</em></div><div class="setrow">' + fin(s.final, true) + strip(s.seq) + '</div>' + legend(sc);
   }
   if (key !== panelKey) { panelKey = key; if (html) p.innerHTML = html; }
   p.classList.toggle('on', !!html);
 }
 
 function render(sc) {
-  fitName($('tUs'), sc.us.name); fitName($('tThem'), sc.them.name);
+  fitNames(sc.us.name, sc.them.name);
   setNum('pUs', sc.us.points); setNum('pThem', sc.them.points);
   $('mid').hidden = !sc.show_sets;
   $('sets').textContent = sc.us.sets + ' : ' + sc.them.sets;
