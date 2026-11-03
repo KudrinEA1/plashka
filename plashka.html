@@ -8,7 +8,7 @@
   :root { --blue:#3E4093; --navy:#2C2F53; --ink:#1F2150; --yellow:#FDCD29; --gold:#E4C04B; --k:1; }
   html, body { margin:0; background:transparent; font-family: "Segoe UI", system-ui, -apple-system, sans-serif; color:#fff; }
   body { display:flex; justify-content:center; padding-top: calc(10px * var(--k)); }
-  #wrap { display:flex; flex-direction:column; align-items:center; }
+  #wrap { display:flex; flex-direction:column; align-items:center; position:relative; }
 
   /* ---------- основная строка ---------- */
   #bar { display:flex; align-items:stretch; height: calc(46px * var(--k)); border-radius: calc(8px * var(--k)); overflow:hidden;
@@ -60,6 +60,14 @@
   .legend { font-size: calc(11px * var(--k)); color:#cfd2ff; margin-top: calc(4px * var(--k)); text-align:center; }
   .legend b { display:inline-block; width: calc(8px * var(--k)); height: calc(8px * var(--k)); border-radius:50%; margin: 0 calc(3px * var(--k)) 0 calc(8px * var(--k)); }
 
+  /* питстоп: счёт серый и полупрозрачный, под плашкой «Счёт уточняется» */
+  .pts, .sets span { transition: opacity .4s, filter .4s; }
+  body.pit .pts, body.pit .sets span { opacity:.4; filter: grayscale(1); }
+  #pitNote { position:absolute; top: calc(52px * var(--k)); white-space:nowrap; font-size: calc(14px * var(--k)); font-weight:800; padding: calc(3px * var(--k)) calc(12px * var(--k));
+             border-radius: calc(6px * var(--k)); background:var(--navy); color:#fff; box-shadow: 0 0 0 calc(1.5px * var(--k)) var(--gold);
+             opacity:0; transform: translateY(calc(-8px * var(--k))); transition: opacity .35s, transform .35s; }
+  body.pit #pitNote { opacity:1; transform:none; }
+  body.pit #under { display:none; }
   body.noanim * { transition:none !important; animation:none !important; }
 </style>
 </head>
@@ -72,6 +80,7 @@
     <div class="pts" id="pThem">0</div>
     <div class="name" id="nThem"><span id="tThem">Соперник</span><i class="dot" id="sThem"></i></div>
   </div>
+  <div id="pitNote">Счёт уточняется</div>
   <div id="under">
     <div class="side"><span class="badge ball" id="bUs"></span><span class="badge" id="rUs"></span></div>
     <div class="side"><span class="badge" id="rThem"></span><span class="badge ball" id="bThem"></span></div>
@@ -151,6 +160,7 @@ function showPanel(sc) {
 }
 
 function render(sc) {
+  document.body.classList.toggle('pit', !!sc.pit);
   fitNames(sc.us.name, sc.them.name);
   setNum('pUs', sc.us.points); setNum('pThem', sc.them.points);
   $('mid').hidden = !sc.show_sets;
