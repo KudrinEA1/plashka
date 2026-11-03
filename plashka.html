@@ -11,22 +11,22 @@
   #wrap { display:flex; flex-direction:column; align-items:center; position:relative; }
 
   /* ---------- основная строка ---------- */
-  #bar { display:flex; align-items:stretch; height: calc(46px * var(--k)); border-radius: calc(8px * var(--k)); overflow:hidden;
+  #bar { display:flex; align-items:stretch; height: calc(36px * var(--k)); border-radius: calc(8px * var(--k)); overflow:hidden;
          box-shadow: 0 0 0 calc(2px * var(--k)) var(--gold); font-weight:700; }
   .name { background:var(--blue); display:flex; align-items:center; gap: calc(6px * var(--k)); padding: 0 calc(12px * var(--k));
-          font-size: calc(20px * var(--k)); white-space:nowrap; box-sizing:border-box; }
+          font-size: calc(18px * var(--k)); white-space:nowrap; box-sizing:border-box; line-height:1; }
   .name span { flex:1; text-align:center; }        /* блоки названий одной ширины, короткое название - по центру своего блока */
   #nThem { flex-direction: row-reverse; }
   .dot { width: calc(9px * var(--k)); height: calc(9px * var(--k)); border-radius:50%; background:var(--yellow); flex:none; opacity:0; transition: opacity .3s; }
   .dot.on { opacity:1; }
   .pts { position:relative; background:var(--yellow); color:var(--ink); min-width: calc(50px * var(--k)); padding: 0 calc(8px * var(--k));
-         font-size: calc(30px * var(--k)); display:flex; align-items:center; justify-content:center; font-variant-numeric: tabular-nums; }
+         font-size: calc(27px * var(--k)); line-height:1; display:flex; align-items:center; justify-content:center; font-variant-numeric: tabular-nums; }
   .pts::after { content:""; position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; }
   .pts.flash::after { animation: flash .9s ease-out; }
   @keyframes flash { 0% { opacity:.75; } 100% { opacity:0; } }
-  .sets { background:var(--navy); display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 0 calc(10px * var(--k)); line-height:1.05; }
-  .sets small { font-size: calc(10px * var(--k)); color:var(--gold); letter-spacing:.06em; text-transform:uppercase; font-weight:700; }
-  .sets span { font-size: calc(17px * var(--k)); font-variant-numeric: tabular-nums; }
+  .sets { background:var(--navy); display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 0 calc(10px * var(--k)); line-height:1; }
+  .sets small { font-size: calc(9px * var(--k)); color:var(--gold); letter-spacing:.06em; text-transform:uppercase; font-weight:700; }
+  .sets span { font-size: calc(15px * var(--k)); font-variant-numeric: tabular-nums; }
 
   /* ---------- значки под строкой: сетбол, серия ---------- */
   #under { display:flex; justify-content:space-between; width:100%; height: calc(24px * var(--k)); margin-top: calc(4px * var(--k)); }
@@ -46,6 +46,8 @@
   table { border-collapse:collapse; }
   td { padding: calc(2px * var(--k)) calc(6px * var(--k)); font-size: calc(14px * var(--k)); font-weight:700; vertical-align:middle; white-space:nowrap; }
   td.n { color:var(--gold); }
+  tr + tr td { border-top: 1px solid rgba(228,192,75,.35); padding-top: calc(7px * var(--k)); }
+  tr td { padding-bottom: calc(7px * var(--k)); }
   .setrow { display:flex; align-items:center; gap: calc(8px * var(--k)); }
   .strip { display:grid; grid-template-rows: repeat(2, calc(17px * var(--k))); grid-auto-columns: calc(17px * var(--k)); gap: calc(2px * var(--k)); }
   .strip i { width: calc(17px * var(--k)); height: calc(17px * var(--k)); border-radius:50%; font-style:normal; color:var(--ink);
@@ -63,7 +65,7 @@
   /* питстоп: счёт серый и полупрозрачный, под плашкой «Счёт уточняется» */
   .pts, .sets span { transition: opacity .4s, filter .4s; }
   body.pit .pts, body.pit .sets span { opacity:.4; filter: grayscale(1); }
-  #pitNote { position:absolute; top: calc(52px * var(--k)); white-space:nowrap; font-size: calc(14px * var(--k)); font-weight:800; padding: calc(3px * var(--k)) calc(12px * var(--k));
+  #pitNote { position:absolute; top: calc(42px * var(--k)); white-space:nowrap; font-size: calc(14px * var(--k)); font-weight:800; padding: calc(3px * var(--k)) calc(12px * var(--k));
              border-radius: calc(6px * var(--k)); background:var(--navy); color:#fff; box-shadow: 0 0 0 calc(1.5px * var(--k)) var(--gold);
              opacity:0; transform: translateY(calc(-8px * var(--k))); transition: opacity .35s, transform .35s; }
   body.pit #pitNote { opacity:1; transform:none; }
@@ -113,7 +115,7 @@ function fitNames(us, them) {                 // названия не обре�
   let w = Math.max(a.scrollWidth, b.scrollWidth);
   if (w > cap) {
     const f = cap / w;
-    for (const el of [a, b]) el.style.fontSize = (20 * k * f) + 'px';
+    for (const el of [a, b]) el.style.fontSize = (18 * k * f) + 'px';
     w = Math.max(a.scrollWidth, b.scrollWidth);
   }
   for (const el of [a, b]) el.style.width = w + 'px';
@@ -148,7 +150,7 @@ function showPanel(sc) {
   if (sc.board) {                                   // «Статистика в эфир»: все партии
     key = 'board' + JSON.stringify(sc.board.map(r => r.final));
     html = '<div class="ttl">Статистика матча</div><table>' + sc.board.map(r =>
-      '<tr><td class="n">' + r.n + '</td><td>' + fin(r.final, r.done) + '</td><td>' + strip(r.seq) + '</td></tr>').join('') +
+      '<tr><td class="n">' + r.n + '</td><td>' + fin(r.final, r.done) + '</td><td>' + (r.nodata ? '<span style="opacity:.6">нет данных</span>' : strip(r.seq)) + '</td></tr>').join('') +
       '</table>' + legend(sc);
   } else if (sc.summary) {                          // итог только что закончившейся партии
     const s = sc.summary;
